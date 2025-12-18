@@ -10,26 +10,25 @@ import operator
 
 class CipherType(str, Enum):
     """Типы поддерживаемых шифров."""
-    SHIFT = 'shift'
-    SUBSTITUTION = 'substitution'
+
+    SHIFT = "shift"
+    SUBSTITUTION = "substitution"
 
 
 class CommandType(str, Enum):
     """Поддерживаемые команды."""
-    ADD = 'ADD'
-    REM = 'REM'
-    PRINT = 'PRINT'
+
+    ADD = "ADD"
+    REM = "REM"
+    PRINT = "PRINT"
 
 
-FIELD_MAPPING = {
-    'owner': 'name',
-    'text': 'source_str',
-    'shift': 'shift_by'
-}
+FIELD_MAPPING = {"owner": "name", "text": "source_str", "shift": "shift_by"}
 
 
 class CipherText:
     """Базовый класс для шифрованного текста."""
+
     def __init__(self, source_str: str, name: str):
         self.source_str: str = source_str
         self.name: str = name
@@ -41,6 +40,7 @@ class CipherText:
 
 class ShiftCipherText(CipherText):
     """Шифр сдвига (Шифр Цезаря)."""
+
     def __init__(self, source_str: str, name: str, shift_by: int):
         super().__init__(source_str, name)
         self.shift_by: int = shift_by
@@ -51,7 +51,10 @@ class ShiftCipherText(CipherText):
 
 class SubstitutionCipherText(CipherText):
     """Шифр замены."""
-    def __init__(self, source_str: str, name: str, source_alpha: str, target_alpha: str):
+
+    def __init__(
+        self, source_str: str, name: str, source_alpha: str, target_alpha: str
+    ):
         super().__init__(source_str, name)
         self.source_alpha: str = source_alpha
         self.target_alpha: str = target_alpha
@@ -62,31 +65,35 @@ class SubstitutionCipherText(CipherText):
 
 class CipherManager:
     """Класс для управления списком шифрованных текстов."""
+
     def __init__(self):
         self._container: List[CipherText] = []
 
     def add(self, args: List[str]) -> None:
         """Обрабатывает аргументы команды ADD и добавляет объект в контейнер."""
         params = self._parse_args(args)
-        c_type = params.get('type')
+        c_type = params.get("type")
 
         try:
             if c_type == CipherType.SUBSTITUTION:
-                self._container.append(SubstitutionCipherText(
-                    source_str=params['text'],
-                    name=params['owner'],
-                    source_alpha=params['source'],
-                    target_alpha=params['target']
-                ))
+                self._container.append(
+                    SubstitutionCipherText(
+                        source_str=params["text"],
+                        name=params["owner"],
+                        source_alpha=params["source"],
+                        target_alpha=params["target"],
+                    )
+                )
             elif c_type == CipherType.SHIFT:
-                self._container.append(ShiftCipherText(
-                    source_str=params['text'],
-                    name=params['owner'],
-                    shift_by=int(params['shift'])
-                ))
+                self._container.append(
+                    ShiftCipherText(
+                        source_str=params["text"],
+                        name=params["owner"],
+                        shift_by=int(params["shift"]),
+                    )
+                )
             else:
-                print(
-                    f"Ошибка: Неизвестный или отсутствующий тип шифра: {c_type}")
+                print(f"Ошибка: Неизвестный или отсутствующий тип шифра: {c_type}")
 
         except KeyError as error:
             print(f"Ошибка добавления: отсутствует обязательное поле {error}")
@@ -98,12 +105,11 @@ class CipherManager:
         Удаляет объекты, соответствующие условию.
         Поддерживает операторы >, <, =.
         """
-        ops = {'>': operator.gt, '<': operator.lt, '=': operator.eq}
+        ops = {">": operator.gt, "<": operator.lt, "=": operator.eq}
 
         found_op = next((op for op in ops if op in condition_str), None)
         if not found_op:
-            print(
-                f"Ошибка REM: Не найден оператор сравнения в '{condition_str}'")
+            print(f"Ошибка REM: Не найден оператор сравнения в '{condition_str}'")
             return
 
         key_raw, val_str = condition_str.split(found_op, 1)
@@ -113,7 +119,8 @@ class CipherManager:
         initial_len = len(self._container)
 
         self._container = [
-            obj for obj in self._container
+            obj
+            for obj in self._container
             if not self._should_remove(obj, attr_name, found_op, val_str, ops)
         ]
 
@@ -131,13 +138,19 @@ class CipherManager:
         """Превращает список ['key=val', ...] в словарь."""
         data = {}
         for item in args:
-            if '=' in item:
-                key, value = item.split('=', 1)
+            if "=" in item:
+                key, value = item.split("=", 1)
                 data[key] = value
         return data
 
-    def _should_remove(self, obj: CipherText, attr_name: str,
-                       op_symbol: str, val_str: str, ops: Dict[str, Any]) -> bool:
+    def _should_remove(
+        self,
+        obj: CipherText,
+        attr_name: str,
+        op_symbol: str,
+        val_str: str,
+        ops: Dict[str, Any],
+    ) -> bool:
         """Проверяет, нужно ли удалять конкретный объект по условию."""
         if not hasattr(obj, attr_name):
             return False
@@ -151,10 +164,10 @@ class CipherManager:
             return False
 
 
-Commands = Literal['ADD', 'REM', 'PRINT']
-CipherMethod = Literal['shift', 'substitution']
+Commands = Literal["ADD", "REM", "PRINT"]
+CipherMethod = Literal["shift", "substitution"]
 
-COMMAND_LIST: List[Commands] = ['ADD', 'REM', 'PRINT']
+COMMAND_LIST: List[Commands] = ["ADD", "REM", "PRINT"]
 
 
 results: List[CipherText] = []
@@ -162,11 +175,11 @@ results: List[CipherText] = []
 
 def main():
     """Главная функция запуска обработки файла."""
-    filename = 'test.txt'
+    filename = "test.txt"
     manager = CipherManager()
 
     try:
-        with open(filename, 'r', encoding='utf-8') as f:
+        with open(filename, "r", encoding="utf-8") as f:
             for line in f:
                 parts = line.strip().split()
                 if not parts:
