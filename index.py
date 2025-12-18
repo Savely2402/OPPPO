@@ -1,3 +1,7 @@
+"""
+Модуль для управления коллекцией шифрованных текстов.
+Поддерживает команды ADD, REM, PRINT из внешнего файла.
+"""
 
 from typing import List, Literal, Dict, Any
 from enum import Enum
@@ -5,11 +9,13 @@ import operator
 
 
 class CipherType(str, Enum):
+    """Типы поддерживаемых шифров."""
     SHIFT = 'shift'
     SUBSTITUTION = 'substitution'
 
 
 class CommandType(str, Enum):
+    """Поддерживаемые команды."""
     ADD = 'ADD'
     REM = 'REM'
     PRINT = 'PRINT'
@@ -23,15 +29,18 @@ FIELD_MAPPING = {
 
 
 class CipherText:
+    """Базовый класс для шифрованного текста."""
     def __init__(self, source_str: str, name: str):
         self.source_str: str = source_str
         self.name: str = name
 
     def info(self) -> str:
+        """Возвращает строковое описание объекта."""
         return f"Владелец: {self.name}, Текст: {self.source_str}"
 
 
 class ShiftCipherText(CipherText):
+    """Шифр сдвига (Шифр Цезаря)."""
     def __init__(self, source_str: str, name: str, shift_by: int):
         super().__init__(source_str, name)
         self.shift_by: int = shift_by
@@ -41,7 +50,7 @@ class ShiftCipherText(CipherText):
 
 
 class SubstitutionCipherText(CipherText):
-
+    """Шифр замены."""
     def __init__(self, source_str: str, name: str, source_alpha: str, target_alpha: str):
         super().__init__(source_str, name)
         self.source_alpha: str = source_alpha
@@ -52,10 +61,12 @@ class SubstitutionCipherText(CipherText):
 
 
 class CipherManager:
+    """Класс для управления списком шифрованных текстов."""
     def __init__(self):
         self._container: List[CipherText] = []
 
     def add(self, args: List[str]) -> None:
+        """Обрабатывает аргументы команды ADD и добавляет объект в контейнер."""
         params = self._parse_args(args)
         c_type = params.get('type')
 
@@ -83,6 +94,10 @@ class CipherManager:
             print("Ошибка: параметр 'shift' должен быть числом")
 
     def remove(self, condition_str: str) -> None:
+        """
+        Удаляет объекты, соответствующие условию.
+        Поддерживает операторы >, <, =.
+        """
         ops = {'>': operator.gt, '<': operator.lt, '=': operator.eq}
 
         found_op = next((op for op in ops if op in condition_str), None)
@@ -105,6 +120,7 @@ class CipherManager:
         print(f"Удалено объектов: {initial_len - len(self._container)}")
 
     def print_all(self) -> None:
+        """Выводит информацию обо всех объектах в консоль."""
         print("\n--- Содержимое контейнера ---")
         if not self._container:
             print("Контейнер пуст.")
@@ -112,6 +128,7 @@ class CipherManager:
             print(f"{i}. {obj.info()}")
 
     def _parse_args(self, args: List[str]) -> Dict[str, str]:
+        """Превращает список ['key=val', ...] в словарь."""
         data = {}
         for item in args:
             if '=' in item:
@@ -121,6 +138,7 @@ class CipherManager:
 
     def _should_remove(self, obj: CipherText, attr_name: str,
                        op_symbol: str, val_str: str, ops: Dict[str, Any]) -> bool:
+        """Проверяет, нужно ли удалять конкретный объект по условию."""
         if not hasattr(obj, attr_name):
             return False
 
