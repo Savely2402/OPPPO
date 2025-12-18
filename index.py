@@ -12,29 +12,29 @@ class CipherText:
 
 
 class ShiftCipherText(CipherText):
-    def __init__(self, sourcestr: str, name: str, shiftBy: int):
+    def __init__(self, sourcestr: str, name: str, shift_by: int):
         super().__init__(sourcestr, name)
-        self.shiftBy: int = shiftBy
+        self.shift_by: int = shift_by
 
     def info(self) -> str:
-        return f"[Сдвиг] {super().info()}, Сдвиг: {self.shiftBy}"
+        return f"[Сдвиг] {super().info()}, Сдвиг: {self.shift_by}"
 
 
 class SubstitutionCipherText(CipherText):
 
-    def __init__(self, sourcestr: str, name: str, sourceAlphabet: str, targetAlphabet: str):
+    def __init__(self, sourcestr: str, name: str, source_alpha: str, target_alpha: str):
         super().__init__(sourcestr, name)
-        self.sourceAlphabet: str = sourceAlphabet
-        self.targetAlphabet: str = targetAlphabet
+        self.source_alpha: str = source_alpha
+        self.target_alpha: str = target_alpha
 
     def info(self) -> str:
-        return f"[Замена] {super().info()}, Алфавиты: {self.sourceAlphabet}->{self.targetAlphabet}"
+        return f"[Замена] {super().info()}, Алфавиты: {self.source_alpha}->{self.target_alpha}"
 
 
 Commands = Literal['ADD', 'REM', 'PRINT']
 CipherMethod = Literal['shift', 'substitution']
 
-commandList: List[Commands] = ['ADD', 'REM', 'PRINT']
+COMMAND_LIST: List[Commands] = ['ADD', 'REM', 'PRINT']
 
 
 results: List[CipherText] = []
@@ -106,7 +106,7 @@ def execute_rem_command(condition_str: str):
     key_mapping = {
         'owner': 'name',
         'text': 'sourcestr',
-        'shift': 'shiftBy'
+        'shift': 'shift_by'
     }
 
     attr_name = key_mapping.get(key, key)
@@ -129,13 +129,13 @@ def execute_rem_command(condition_str: str):
 
         should_remove = False
         if operator == '=':
-            should_remove = (obj_val == target_val)
+            should_remove = obj_val == target_val
         elif operator == '>':
             if isinstance(obj_val, (int, float)):
-                should_remove = (obj_val > target_val)
+                should_remove = obj_val > target_val
         elif operator == '<':
             if isinstance(obj_val, (int, float)):
-                should_remove = (obj_val < target_val)
+                should_remove = obj_val < target_val
 
         if should_remove:
             removed_count += 1
@@ -146,12 +146,12 @@ def execute_rem_command(condition_str: str):
     print(f"Удалено объектов: {removed_count}")
 
 
-def execute_print_command(objectsArray: List[CipherText]):
-    for obj in objectsArray:
+def execute_print_command(objects: List[CipherText]):
+    for obj in objects:
         print(obj.info())
 
 
-with open('test.txt', 'r') as f:
+with open('test.txt', 'r', encoding='utf-8') as f:
     for line in f:
         objData = line.split(' ')
 
