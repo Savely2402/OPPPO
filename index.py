@@ -1,5 +1,25 @@
 
-from typing import List, Literal, Dict
+from typing import List, Literal, Dict, Any
+from enum import Enum
+import operator
+
+
+class CipherType(str, Enum):
+    SHIFT = 'shift'
+    SUBSTITUTION = 'substitution'
+
+
+class CommandType(str, Enum):
+    ADD = 'ADD'
+    REM = 'REM'
+    PRINT = 'PRINT'
+
+
+FIELD_MAPPING = {
+    'owner': 'name',
+    'text': 'source_str',
+    'shift': 'shift_by'
+}
 
 
 class CipherText:
@@ -31,6 +51,88 @@ class SubstitutionCipherText(CipherText):
         return f"[Замена] {super().info()}, Алфавиты: {self.source_alpha}->{self.target_alpha}"
 
 
+class CipherManager:
+    def __init__(self):
+        self._container: List[CipherText] = []
+
+    def add(self, args: List[str]) -> None:
+        params = self._parse_args(args)
+        c_type = params.get('type')
+
+        try:
+            if c_type == CipherType.SUBSTITUTION:
+                self._container.append(SubstitutionCipherText(
+                    source_str=params['text'],
+                    name=params['owner'],
+                    source_alpha=params['source'],
+                    target_alpha=params['target']
+                ))
+            elif c_type == CipherType.SHIFT:
+                self._container.append(ShiftCipherText(
+                    source_str=params['text'],
+                    name=params['owner'],
+                    shift_by=int(params['shift'])
+                ))
+            else:
+                print(
+                    f"Ошибка: Неизвестный или отсутствующий тип шифра: {c_type}")
+
+        except KeyError as error:
+            print(f"Ошибка добавления: отсутствует обязательное поле {error}")
+        except ValueError:
+            print("Ошибка: параметр 'shift' должен быть числом")
+
+    def remove(self, condition_str: str) -> None:
+        ops = {'>': operator.gt, '<': operator.lt, '=': operator.eq}
+
+        found_op = next((op for op in ops if op in condition_str), None)
+        if not found_op:
+            print(
+                f"Ошибка REM: Не найден оператор сравнения в '{condition_str}'")
+            return
+
+        key_raw, val_str = condition_str.split(found_op, 1)
+
+        attr_name = FIELD_MAPPING.get(key_raw, key_raw)
+
+        initial_len = len(self._container)
+
+        self._container = [
+            obj for obj in self._container
+            if not self._should_remove(obj, attr_name, found_op, val_str, ops)
+        ]
+
+        print(f"Удалено объектов: {initial_len - len(self._container)}")
+
+    def print_all(self) -> None:
+        print("\n--- Содержимое контейнера ---")
+        if not self._container:
+            print("Контейнер пуст.")
+        for i, obj in enumerate(self._container, 1):
+            print(f"{i}. {obj.info()}")
+
+    def _parse_args(self, args: List[str]) -> Dict[str, str]:
+        data = {}
+        for item in args:
+            if '=' in item:
+                key, value = item.split('=', 1)
+                data[key] = value
+        return data
+
+    def _should_remove(self, obj: CipherText, attr_name: str,
+                       op_symbol: str, val_str: str, ops: Dict[str, Any]) -> bool:
+        if not hasattr(obj, attr_name):
+            return False
+
+        obj_val = getattr(obj, attr_name)
+
+        try:
+            target_val = type(obj_val)(val_str)
+            return ops[op_symbol](obj_val, target_val)
+        except ValueError:
+            return False
+
+
 Commands = Literal['ADD', 'REM', 'PRINT']
 CipherMethod = Literal['shift', 'substitution']
 
@@ -40,130 +142,37 @@ COMMAND_LIST: List[Commands] = ['ADD', 'REM', 'PRINT']
 results: List[CipherText] = []
 
 
-def parse_line_to_dict(args: List[str]) -> Dict[str, str]:
-    data = {}
-    for item in args:
-        if '=' in item:
-            key, value = item.split('=', 1)
-            data[key] = value
-    return data
-
-
-def execute_add_command(args: List[str]):
-    params = parse_line_to_dict(args)
+def main():
+    """Главная функция запуска обработки файла."""
+    filename = 'test.txt'
+    manager = CipherManager()
 
     try:
-        c_type = params.get('type')
-        owner = params.get('owner')
-        text = params.get('text')
+        with open(filename, 'r', encoding='utf-8') as f:
+            for line in f:
+                parts = line.strip().split()
+                if not parts:
+                    continue
 
-        if not (c_type and owner and text):
-            print(f"Ошибка: Неполные данные в строке: {args}")
-            return
+                command = parts[0]
+                args = parts[1:]
 
-        if c_type == 'substitution':
-            src = params.get('source')
-            tgt = params.get('target')
-            if src and tgt:
-                obj = SubstitutionCipherText(text, owner, src, tgt)
-                results.append(obj)
-            else:
-                print("Ошибка: Не указаны алфавиты (source/target)")
+                if command == CommandType.ADD:
+                    manager.add(args)
+                elif command == CommandType.PRINT:
+                    manager.print_all()
+                elif command == CommandType.REM:
+                    if args:
+                        manager.remove(args[0])
+                    else:
+                        print("Ошибка REM: пропущено условие")
+                else:
+                    # Игнорируем или логируем неизвестные команды
+                    pass
 
-        elif c_type == 'shift':
-            shift_val = params.get('shift')
-            if shift_val:
-                obj = ShiftCipherText(text, owner, int(shift_val))
-                results.append(obj)
-            else:
-                print("Ошибка: Не указан сдвиг (shift)")
-
-        else:
-            print(f"Неизвестный тип: {c_type}")
-
-    except ValueError:
-        print("Ошибка: Некорректное число")
+    except FileNotFoundError:
+        print(f"Файл {filename} не найден.")
 
 
-def execute_rem_command(condition_str: str):
-    global results
-
-    operator = None
-    if '>' in condition_str:
-        operator = '>'
-    elif '<' in condition_str:
-        operator = '<'
-    elif '=' in condition_str:
-        operator = '='
-
-    if not operator:
-        print(
-            f"Ошибка REM: Не найден оператор сравнения (>, <, =) в '{condition_str}'")
-        return
-
-    key, val_str = condition_str.split(operator)
-
-    key_mapping = {
-        'owner': 'name',
-        'text': 'sourcestr',
-        'shift': 'shift_by'
-    }
-
-    attr_name = key_mapping.get(key, key)
-
-    new_results = []
-    removed_count = 0
-
-    for obj in results:
-        if not hasattr(obj, attr_name):
-            new_results.append(obj)
-            continue
-
-        obj_val = getattr(obj, attr_name)
-
-        try:
-            target_val = type(obj_val)(val_str)
-        except ValueError:
-            new_results.append(obj)
-            continue
-
-        should_remove = False
-        if operator == '=':
-            should_remove = obj_val == target_val
-        elif operator == '>':
-            if isinstance(obj_val, (int, float)):
-                should_remove = obj_val > target_val
-        elif operator == '<':
-            if isinstance(obj_val, (int, float)):
-                should_remove = obj_val < target_val
-
-        if should_remove:
-            removed_count += 1
-        else:
-            new_results.append(obj)
-
-    results = new_results
-    print(f"Удалено объектов: {removed_count}")
-
-
-def execute_print_command(objects: List[CipherText]):
-    for obj in objects:
-        print(obj.info())
-
-
-with open('test.txt', 'r', encoding='utf-8') as f:
-    for line in f:
-        objData = line.split(' ')
-
-        command = objData[0].strip()
-
-        if command == 'ADD':
-            execute_add_command(objData)
-        elif command == 'PRINT':
-            execute_print_command(results)
-        elif command == 'REM':
-            if len(objData) > 1:
-                condition = objData[1]
-                execute_rem_command(condition)
-            else:
-                print("Ошибка: Пустое условие для REM")
+if __name__ == "__main__":
+    main()
