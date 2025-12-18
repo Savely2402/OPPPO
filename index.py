@@ -23,17 +23,17 @@ FIELD_MAPPING = {
 
 
 class CipherText:
-    def __init__(self, sourcestr: str, name: str):
-        self.sourcestr: str = sourcestr
+    def __init__(self, source_str: str, name: str):
+        self.source_str: str = source_str
         self.name: str = name
 
     def info(self) -> str:
-        return f"Владелец: {self.name}, Текст: {self.sourcestr}"
+        return f"Владелец: {self.name}, Текст: {self.source_str}"
 
 
 class ShiftCipherText(CipherText):
-    def __init__(self, sourcestr: str, name: str, shift_by: int):
-        super().__init__(sourcestr, name)
+    def __init__(self, source_str: str, name: str, shift_by: int):
+        super().__init__(source_str, name)
         self.shift_by: int = shift_by
 
     def info(self) -> str:
@@ -42,8 +42,8 @@ class ShiftCipherText(CipherText):
 
 class SubstitutionCipherText(CipherText):
 
-    def __init__(self, sourcestr: str, name: str, source_alpha: str, target_alpha: str):
-        super().__init__(sourcestr, name)
+    def __init__(self, source_str: str, name: str, source_alpha: str, target_alpha: str):
+        super().__init__(source_str, name)
         self.source_alpha: str = source_alpha
         self.target_alpha: str = target_alpha
 
